@@ -1,7 +1,8 @@
 export type Vec3 = Readonly<{ x: number; y: number; z: number }>;
-export type Capability = 'position' | 'entities' | 'camera' | 'aim' | 'attack' | 'world';
+export type Capability = 'position' | 'entities' | 'camera' | 'aim' | 'attack' | 'world' | 'flight';
+export type TargetType = 'player' | 'hostile' | 'animal';
 export type Entity = Vec3 & Readonly<{
-  id: number; name: string; crouching: boolean; updatedAt: number;
+  id: number; name: string; type: TargetType; height: number; width: number; crouching: boolean; updatedAt: number;
 }>;
 export type Camera = Readonly<{
   position: Vec3; matrix: readonly number[]; yaw: number; pitch: number;
@@ -18,5 +19,6 @@ export type GameAdapter = Readonly<{
   aim(yawDelta: number, pitchDelta: number): boolean;
   attack(): boolean;
   visible(from: Vec3, to: Vec3): boolean;
+  flight(enabled: boolean): boolean;
   dispose(): void;
 }>;

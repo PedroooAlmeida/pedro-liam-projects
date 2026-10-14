@@ -1,15 +1,20 @@
 import type { Vec3 } from '../types';
 import { observeMethod } from './method';
+import { hookFlight } from './flight';
 
 type Engine = WebAssembly.Exports & { memory: WebAssembly.Memory; state_ptr(): number; get_block(x: number, y: number, z: number): number; kind_ptr(): number };
-export function hookEngine(report: (error: unknown) => void) {
+export function hookEngine(report: (error: unknown) => void, allowFlight: () => boolean = () => false) {
   let engine: Engine | null = null;
+  let flight: ReturnType<typeof hookFlight> = null, disposed = false;
   const observe = (_receiver: unknown, _args: unknown[], result: unknown) => {
     void Promise.resolve(result).then(value => {
+      if (disposed) return;
       const instance = value instanceof WebAssembly.Instance ? value : (value as { instance?: unknown })?.instance;
       if (!(instance instanceof WebAssembly.Instance)) return;
       const e = instance.exports;
-      if (e.memory instanceof WebAssembly.Memory && typeof e.state_ptr === 'function' && typeof e.get_block === 'function' && typeof e.kind_ptr === 'function') engine = e as Engine;
+      if (e.memory instanceof WebAssembly.Memory && typeof e.state_ptr === 'function' && typeof e.get_block === 'function' && typeof e.kind_ptr === 'function') {
+        flight?.dispose(); engine = e as Engine; flight = hookFlight(instance, allowFlight);
+      }
     }).catch(report);
   };
   const cleanups = [observeMethod(WebAssembly, 'instantiate', observe, report), observeMethod(WebAssembly, 'instantiateStreaming', observe, report)];
@@ -39,6 +44,11 @@ export function hookEngine(report: (error: unknown) => void) {
       } catch (error) { report(error); engine = null; return false; }
     },
     ready: () => engine !== null,
-    dispose() { cleanups.reverse().forEach(fn => fn()); engine = null; },
+    canFly: () => flight !== null && engine !== null,
+    flight(enabled: boolean) {
+      try { return flight?.set(enabled) ?? false; }
+      catch (error) { report(error); return false; }
+    },
+    dispose() { disposed = true; flight?.dispose(); cleanups.reverse().forEach(fn => fn()); engine = null; },
   };
 }

@@ -9,15 +9,20 @@ import { createHudLayout } from '../src/services/hud-layout';
 
 const camera: Camera = { position: { x: 0, y: 1.62, z: 0 }, matrix: [1,0,0,0,0,1,0,0,0,0,-1,-1,0,0,-.1,0], yaw: 0, pitch: 0, width: 800, height: 600, updatedAt: 100, firstPerson: true };
 const game: GameSnapshot = { connected: true, synced: true, active: true, selfId: 1, position: { x: 0, y: 0, z: 0 }, camera,
-  entities: [{ id: 2, x: 0, y: 0, z: -2.5, name: 'Friend', crouching: false, updatedAt: 100 }], capabilities: new Set(), issues: [], attackRequests: 1, hitEvents: 0, deniedHits: 0 };
+  entities: [{ id: 2, type: 'player', width: .6, height: 1.8, x: 0, y: 0, z: -2.5, name: 'Friend', crouching: false, updatedAt: 100 }], capabilities: new Set(), issues: [], attackRequests: 1, hitEvents: 0, deniedHits: 0 };
 const drawContext = () => ({ fillText: vi.fn(), fillRect: vi.fn(), strokeRect: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), arc: vi.fn() }) as unknown as CanvasRenderingContext2D;
 const context = (): ModuleContext => ({ game, now: 100, dt: .016, settings: {}, signal: new AbortController().signal, hud: createHudLayout(800, 1000, []),
   target: selectTarget(game.entities, camera, { range: 6, fov: 90, selfId: 1, now: 100, visible: () => true }),
   actions: createActions({ aim: () => true, attack: () => true }), visible: () => true });
 
 describe('built-in modules', () => {
+  it('requests flight only during active gameplay', () => {
+    const definition = definitions.find(d => d.id === 'flight')!, module = definition.create(), base = context();
+    const flight = vi.spyOn(base.actions, 'flight'); module.update?.(base); expect(flight).toHaveBeenCalledTimes(1);
+    module.update?.({ ...base, game: { ...game, active: false } }); expect(flight).toHaveBeenCalledTimes(1);
+  });
   it('renders diagnostics, coordinates, and valid player bounds', () => {
-    for (const definition of definitions.filter(d => d.category !== 'Combat')) {
+    for (const definition of definitions.filter(d => d.category !== 'Combat' && d.category !== 'Movement')) {
       const module = definition.create(), canvas = drawContext(), base = context();
       const settings = settingsValues(definition.settings, { tracers: true });
       module.render?.({ ...base, settings }, canvas);

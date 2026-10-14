@@ -36,12 +36,15 @@ After changes, run `npm run build` (or leave `npm run dev` running), reload the 
 | Target HUD | Shared target selection and angular FOV guide | On |
 | Aim Assist | Turns toward the selected visible target through game mouse controls | Off |
 | Trigger Bot | Clicks through game controls for aligned targets within range | Off |
+| Flight | Uses the native flight physics with WASD, Space up, Left Shift down | Off |
 
-Target HUD's range and FOV settings control the shared target-selection service even when the HUD itself is disabled. Combat modules require a fresh first-person camera, a synchronized connection, pointer lock, and focused gameplay. They suspend while the client menu, chat, or inventory is open or the tab loses focus. Close the client menu and resume through the game's own pause screen to continue.
+Target HUD's range, FOV, and target-type settings control the shared target-selection service even when the HUD itself is disabled. Players, hostile mobs, and animals can be selected independently. Mob positions, dimensions (including babies), movement, death, and despawn are tracked from the entity protocol; dropped items, XP, and projectiles are excluded. Player ESP continues to highlight players only.
+
+Combat and Flight require a fresh first-person camera, a synchronized connection, pointer lock, and focused gameplay. They suspend while the client menu, chat, or inventory is open or the tab loses focus. Close the client menu and resume through the game's own pause screen to continue. Flight is under the **Movement** tab and uses the game's native WASD/Space/Left Shift controls. It restores the previous flight state when disabled. Local flight has been verified against the fetched game engine; server-accepted movement still needs a live test.
 
 Assign module hotkeys in the menu. Hotkeys do not fire while typing. **Disable all** switches off every module, including overlays. Preferences persist using `chrome.storage.local`.
 
-Client readouts use a compact right-side stack below the game controls and avoid visible native HUD elements. The launcher moves below the native top-right buttons. Game menus hide the client overlays, and the bottom 180 pixels remain reserved for health, food, and the hotbar.
+Client readouts use a compact right-side stack below the game controls and avoid visible native HUD elements. The launcher moves below the native top-right buttons. Game menus hide the client overlays. Readouts avoid the bottom 180 pixels reserved for health, food, and the hotbar; world-space ESP lines and the FOV circle use the full viewport and draw behind the native game HUD without a hard cutoff.
 
 ## Verification and limits
 
@@ -58,6 +61,8 @@ The installed client has been observed on the live Tweetcraft world: its menu re
 The adapter targets the observed protocol version **5**, engine export signatures, and terrain shader uniforms. Unsupported protocols leave tracking/action modules unavailable. A game update may require adapter changes.
 
 Player ESP uses received network positions; it may lead the game's interpolated models during movement. The line-of-sight check conservatively treats solid, leaf, and glass blocks as obstacles, including partial block shapes. Server hurt events are general observations, **not proof that a particular automated attack caused damage**. Inspect a second player's health to verify actual outcomes. No server-accepted combat behavior has been established by the local harness.
+
+Invulnerability is not implemented. The inspected client receives creative-mode permission and health updates from the server; changing local health or hiding damage would not establish actual immunity. Block X-ray is also not part of this version; enabled Player ESP draws player boxes/labels through terrain using data already received by the game.
 
 ## First live test
 

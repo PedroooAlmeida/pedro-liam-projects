@@ -1,9 +1,10 @@
 import type { ModuleDefinition } from '../../core/module';
-import { numberSetting as number } from '../settings';
+import { numberSetting as number, booleanSetting as boolean } from '../settings';
 
 export const module: ModuleDefinition = {
     id: 'target-hud', name: 'Target HUD', description: 'Shared combat target and angular FOV guide.', category: 'Combat', requires: ['entities', 'camera'], settings: {
       range: number('Target range', 6, 1, 32, .5), fov: number('FOV (degrees)', 60, 5, 170, 5),
+      players: boolean('Target players', true), hostile: boolean('Target hostile mobs', true), animals: boolean('Target animals', true),
     }, defaultEnabled: true,
     create: () => ({ render({ game, settings, target, hud }, ctx) {
       const camera = game.camera;

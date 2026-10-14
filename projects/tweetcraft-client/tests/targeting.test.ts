@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { angleDelta, selectTarget, project, aimStep } from '../src/services/targeting';
+import { angleDelta, selectTarget, project, aimStep, targetPoint } from '../src/services/targeting';
 import type { Camera, Entity } from '../src/game/types';
 
 const camera: Camera = { position: { x: 0, y: 1.62, z: 0 }, matrix: [1,0,0,0,0,1,0,0,0,0,-1,-1,0,0,-.1,0], yaw: 0, pitch: 0, width: 800, height: 600, updatedAt: 0, firstPerson: true };
-const entity = (id: number, x = 0, z = -3): Entity => ({ id, name: 'Player', x, y: 0, z, crouching: false, updatedAt: 0 });
+const entity = (id: number, x = 0, z = -3): Entity => ({ id, type: 'player', width: .6, height: 1.8, name: 'Player', x, y: 0, z, crouching: false, updatedAt: 0 });
 const options = { range: 6, fov: 90, selfId: 1, now: 100, visible: () => true };
 describe('targeting', () => {
+  it('targets mobs at their own height, respects filters, and separates player/mob IDs', () => {
+    const mob: Entity = { ...entity(1), type: 'hostile', height: 1.95, name: 'Zombie' };
+    expect(selectTarget([mob], camera, options)?.entity.name).toBe('Zombie');
+    expect(selectTarget([mob], camera, { ...options, types: ['player'] })).toBeNull();
+    expect(selectTarget([mob], camera, { ...options, types: [] })).toBeNull();
+    expect(targetPoint({ ...mob, height: .7 }).y).toBeCloseTo(.455);
+    expect(selectTarget([{ ...mob, type: 'animal' }], camera, { ...options, types: ['animal'] })?.entity.type).toBe('animal');
+  });
   it('wraps angles across the -pi/pi boundary', () => expect(angleDelta(-Math.PI + .1, Math.PI - .1)).toBeCloseTo(.2));
   it('selects a visible non-self player inside range and FOV, including stationary players', () => {
     expect(selectTarget([entity(1), entity(2, 0, -8), entity(3, 5, 0), entity(4)], camera, options)?.entity.id).toBe(4);

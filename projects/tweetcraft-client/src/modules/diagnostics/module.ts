@@ -5,7 +5,8 @@ export const module: ModuleDefinition = {
     create: () => ({ render({ game, hud }, ctx) {
       const lines = [
         `TWEETCRAFT CLIENT  ·  ${game.connected ? game.synced ? 'ONLINE' : 'SYNCING' : 'CONNECTING'}`,
-        `Engine ${game.position ? 'OK' : 'waiting'}  /  Camera ${game.camera ? 'OK' : 'waiting'}  /  Players ${game.entities.length}`,
+        `Engine ${game.position ? 'OK' : 'waiting'} / Camera ${game.camera ? 'OK' : 'waiting'}`,
+        `Players ${game.entities.filter(e => e.type === 'player').length} / Mobs ${game.entities.filter(e => e.type !== 'player').length}`,
         `Attack requests ${game.attackRequests}  /  Hurt events ${game.hitEvents}  /  Denied ${game.deniedHits}`,
         ...game.issues,
       ];

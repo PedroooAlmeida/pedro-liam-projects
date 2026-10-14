@@ -1,39 +1,42 @@
 import type { Entity } from '../types';
 import { record } from '../../core/settings';
+import { createMobTracker } from './mobs';
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 export function createTracker() {
   const players = new Map<number, Entity>();
+  const mobs = createMobTracker();
   let selfId: number | null = null, compatible = false, connected = false, synced = false;
   let requests = 0, hitEvents = 0, denied = 0;
   let issue = '';
   const metadata = (value: unknown) => {
     if (!record(value) || !Number.isInteger(value.id) || !finite(value.id) || value.id < 0 || value.id > 65535) return;
     const old = players.get(value.id);
-    players.set(value.id, { id: value.id, name: typeof value.h === 'string' && value.h ? `@${value.h.slice(0, 50)}`
+    players.set(value.id, { id: value.id, type: 'player', width: .6, height: old?.height ?? 1.8, name: typeof value.h === 'string' && value.h ? `@${value.h.slice(0, 50)}`
       : typeof value.name === 'string' ? value.name.slice(0, 50) : `Player ${value.id}`,
       x: old?.x ?? 0, y: old?.y ?? 0, z: old?.z ?? 0, crouching: old?.crouching ?? false, updatedAt: old?.updatedAt ?? -Infinity });
   };
   const json = (message: unknown, now: number): void => {
     if (!record(message)) return;
     if (message.t === 'welcome') {
-      players.clear(); synced = false;
+      players.clear(); mobs.clear(); synced = false;
       selfId = finite(message.id) ? message.id : null;
       if (Array.isArray(message.players)) message.players.slice(0, 10000).forEach(metadata);
     } else if (message.t === 'synced') synced = true;
     else if (message.t === 'join' || message.t === 'who') metadata(message.p);
     else if (message.t === 'leave' && finite(message.id)) players.delete(message.id);
     else if (message.t === 'evs' && Array.isArray(message.e)) message.e.slice(0, 10000).forEach(event => json(event, now));
+    else if (message.t === 'place' && message.sv) { mobs.clear(); synced = false; }
     else if (message.t === 'phurt') hitEvents++;
     else if (message.t === 'hitdeny') denied++;
     else if (['old', 'kicked', 'moved', 'idle', 'full'].includes(String(message.t))) {
-      synced = false; players.clear();
+      synced = false; players.clear(); mobs.clear();
       issue = `Server: ${String(message.t)}`;
     }
   };
   return {
-    open() { connected = true; compatible = false; synced = false; players.clear(); selfId = null; issue = ''; },
-    close() { connected = false; synced = false; players.clear(); },
+    open() { connected = true; compatible = false; synced = false; players.clear(); mobs.clear(); selfId = null; issue = ''; },
+    close() { connected = false; synced = false; players.clear(); mobs.clear(); },
     outgoing(data: unknown) {
       if (typeof data !== 'string' || data === 'ping' || data.length > 200000) return;
       try {
@@ -51,6 +54,8 @@ export function createTracker() {
         return;
       }
       if (!(data instanceof ArrayBuffer) || data.byteLength === 0) return;
+      const mobUpdate = mobs.incoming(data, now);
+      if (mobUpdate.handled) { hitEvents += mobUpdate.hurts; if (mobUpdate.issue) issue = mobUpdate.issue; return; }
       const view = new DataView(data), type = view.getUint8(0);
       if (type !== 5 && type !== 6) return;
       if (data.byteLength < 5) { issue = 'Truncated relay header'; return; }
@@ -62,7 +67,7 @@ export function createTracker() {
         const offset = 5 + i * 19, id = view.getUint16(offset, true);
         const x = view.getFloat32(offset + 2, true), y = view.getFloat32(offset + 6, true), z = view.getFloat32(offset + 10, true);
         if (![x, y, z].every(Number.isFinite)) continue;
-        players.set(id, { id, name: players.get(id)?.name ?? `Player ${id}`, x, y, z,
+        players.set(id, { id, type: 'player', width: .6, height: view.getUint8(offset + 18) & 1 ? 1.5 : 1.8, name: players.get(id)?.name ?? `Player ${id}`, x, y, z,
           crouching: !!(view.getUint8(offset + 18) & 1), updatedAt: now });
       }
       if (end < data.byteLength) {
@@ -74,7 +79,7 @@ export function createTracker() {
       // A relay delta contains only changes. Silence is not evidence that a stationary
       // player left; full snapshots, leave messages, and disconnects own presence.
       return { selfId, compatible, connected, synced, players: [...players.values()].filter(p => p.id !== selfId && Number.isFinite(p.updatedAt) && p.updatedAt <= now),
-        attackRequests: requests, hitEvents, deniedHits: denied, issue };
+        mobs: mobs.entities(), attackRequests: requests, hitEvents, deniedHits: denied, issue };
     },
   };
 }

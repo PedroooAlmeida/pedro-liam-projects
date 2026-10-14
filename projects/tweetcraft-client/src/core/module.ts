@@ -11,7 +11,7 @@ export type ModuleContext = Readonly<{
   visible: (from: { x: number; y: number; z: number }, to: { x: number; y: number; z: number }) => boolean;
 }>;
 export type ModuleDefinition = Readonly<{
-  id: string; name: string; description: string; category: 'Combat' | 'Render' | 'Client';
+  id: string; name: string; description: string; category: 'Combat' | 'Render' | 'Client' | 'Movement';
   requires: readonly Capability[]; settings: Readonly<Record<string, Setting>>; defaultEnabled?: boolean;
   create(): {
     enable?(context: ModuleContext): void;

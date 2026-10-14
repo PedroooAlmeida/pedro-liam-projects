@@ -4,7 +4,7 @@ import { createAdapter } from '../src/game/adapter';
 import type { Camera } from '../src/game/types';
 
 const hooks = vi.hoisted(() => ({
-  engine: { position: vi.fn(), ready: vi.fn(), visible: vi.fn(), dispose: vi.fn() },
+  engine: { position: vi.fn(), ready: vi.fn(), canFly: vi.fn(() => false), flight: vi.fn(() => false), visible: vi.fn(), dispose: vi.fn() },
   renderer: { camera: vi.fn(), dispose: vi.fn() }, network: { state: vi.fn(), dispose: vi.fn() },
 }));
 vi.mock('../src/game/hooks/engine', () => ({ hookEngine: () => hooks.engine }));
@@ -22,7 +22,7 @@ describe('adapter capability gates', () => {
     hooks.engine.position.mockReturnValue({ x: 0, y: 64, z: 0 }); hooks.engine.ready.mockReturnValue(true);
     const camera: Camera = { position: { x: 0, y: 65.62, z: 0 }, matrix: [], yaw: 0, pitch: 0, firstPerson: true, updatedAt: 100, width: 800, height: 600 };
     hooks.renderer.camera.mockReturnValue(camera);
-    hooks.network.state.mockReturnValue({ compatible: true, connected: true, synced: true, selfId: 1, players: [], attackRequests: 0, hitEvents: 0, deniedHits: 0, issue: '' });
+    hooks.network.state.mockReturnValue({ compatible: true, connected: true, synced: true, selfId: 1, players: [], mobs: [], attackRequests: 0, hitEvents: 0, deniedHits: 0, issue: '' });
     return { canvas, lock, camera };
   };
   it('enables actions only with fresh first-person camera and active controls', () => {
@@ -47,7 +47,7 @@ describe('adapter capability gates', () => {
     document.querySelector<HTMLInputElement>('#chatbox')!.hidden = true; document.querySelector('#inv')!.className = '';
     expect(adapter.snapshot(100).active).toBe(false);
     hooks.engine.ready.mockReturnValue(false); hooks.engine.position.mockReturnValue(null); hooks.renderer.camera.mockReturnValue(null);
-    hooks.network.state.mockReturnValue({ compatible: false, connected: false, synced: false, selfId: null, players: [], attackRequests: 0, hitEvents: 0, deniedHits: 0, issue: 'Offline' });
+    hooks.network.state.mockReturnValue({ compatible: false, connected: false, synced: false, selfId: null, players: [], mobs: [], attackRequests: 0, hitEvents: 0, deniedHits: 0, issue: 'Offline' });
     expect(adapter.snapshot(100).capabilities.size).toBe(0); expect(adapter.snapshot(100).issues).toContain('Offline');
     window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); adapter.dispose();
   });

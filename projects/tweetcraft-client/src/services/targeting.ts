@@ -1,17 +1,19 @@
-import type { Camera, Entity, Vec3 } from '../game/types';
+import type { Camera, Entity, TargetType, Vec3 } from '../game/types';
 
 export const angleDelta = (target: number, current: number): number =>
   Math.atan2(Math.sin(target - current), Math.cos(target - current));
 export const distance = (a: Vec3, b: Vec3): number => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-export const targetPoint = (entity: Entity): Vec3 => ({ x: entity.x, y: entity.y + (entity.crouching ? 1.1 : 1.45), z: entity.z });
+export const targetPoint = (entity: Entity): Vec3 => ({ x: entity.x, y: entity.y + (entity.type === 'player' ? entity.crouching ? 1.1 : 1.45 : entity.height * .65), z: entity.z });
 export type Target = Readonly<{ entity: Entity; point: Vec3; distance: number; yaw: number; pitch: number; error: number }>;
 
 export function selectTarget(entities: readonly Entity[], camera: Camera, options: {
   range: number; fov: number; selfId: number | null; now: number; visible(from: Vec3, to: Vec3): boolean;
+  types?: readonly TargetType[];
 }): Target | null {
   const targets: Target[] = [];
   for (const entity of entities) {
-    if (entity.id === options.selfId || !Number.isFinite(entity.updatedAt) || entity.updatedAt > options.now) continue;
+    if (entity.type === 'player' && entity.id === options.selfId || !Number.isFinite(entity.updatedAt) || entity.updatedAt > options.now
+      || options.types && !options.types.includes(entity.type)) continue;
     const point = targetPoint(entity), d = distance(camera.position, point);
     if (!Number.isFinite(d) || d > options.range || d < .01) continue;
     const dx = point.x - camera.position.x, dy = point.y - camera.position.y, dz = point.z - camera.position.z;

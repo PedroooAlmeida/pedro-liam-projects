@@ -26,9 +26,11 @@ The extension has only the `storage` API permission and site-specific content-sc
 
 ## Game integration
 
-The engine hook transparently observes `WebAssembly.instantiate` and `instantiateStreaming`. It recognizes `memory`, `state_ptr`, `kind_ptr`, and `get_block`, then reads fresh memory views so growth cannot leave a detached buffer cached.
+The engine hook observes `WebAssembly.instantiate` and `instantiateStreaming`. It recognizes `memory`, `state_ptr`, `kind_ptr`, and `get_block`, then reads fresh memory views so growth cannot leave a detached buffer cached.
 
-The network hook observes only matching same-host game sockets. It keeps player metadata and positions, handles incremental/full relay frames, and clears state on disconnect. Stationary players remain tracked: full snapshots and leave messages determine presence, rather than a timeout since the last movement update. It recognizes protocol 5 through the game's outgoing hello. It does not retain the hello's tokens, session IDs, chat, or account data.
+When `player_fly` and `player_tick` are available, the flight hook shadows the recognized instance's `exports` accessor with a frozen export table. All native exports retain their identity except the fly/tick wrappers. These wrappers keep native flight enabled only while the Flight module requests it and gameplay input is active. This accommodates the survival client's per-tick flight reset. Disable/disposal restores the previous flight flag; instance-accessor cleanup preserves replacements installed later. Retained wrapper references become passthrough after disposal. This changes local physics, not server permissions.
+
+The network hook observes only matching same-host game sockets. It keeps player metadata and positions, handles incremental/full relay frames, and clears state on disconnect. Stationary players remain tracked: full snapshots and leave messages determine presence, rather than a timeout since the last movement update. Separate entity frames track living mobs, their dimensions and size changes, movement, death, and despawn. Complete concatenated entity packets are validated before any state mutation. Player and mob IDs have distinct target types so a mob sharing the local player's numeric ID remains targetable. It recognizes protocol 5 through the game's outgoing hello. It does not retain the hello's tokens, session IDs, chat, or account data.
 
 The renderer hook observes terrain `uVP` and `uOrigin` uniforms only on the game's `#gl` WebGL2 canvas. Terrain origin is chunk origin minus camera position; local player position resolves the nearby chunk. The resulting matrix and interpolated camera drive projection. Camera freshness and first-person checks gate actions. This assumes camera/player separation under half a chunk and the current terrain uniform layout.
 
@@ -64,7 +66,7 @@ The runtime separates requested enablement from actual running status. Missing c
 
 One animation loop snapshots the adapter, computes a shared target, updates modules, renders the shared canvas, and flushes permitted actions. Delta time is clamped after stalls. UI status is throttled to four updates per second; world snapshots remain in the game world rather than crossing the bridge every frame.
 
-Action requests include module ID and priority. One aim and one attack request win per frame; equal priorities use module ID as a stable tie-breaker. Attack cooldowns are shared, failed control dispatches can retry, and module failures cancel their pending requests. Input readiness is checked again at dispatch.
+Action requests include module ID and priority. One aim, attack, and flight request win per frame; equal priorities use module ID as a stable tie-breaker. Attack cooldowns are shared, failed control dispatches can retry, and module failures cancel their pending requests. Flight is released on frames with no permitted request and during disposal. Input readiness is checked again at dispatch.
 
 The isolated menu owns persisted preferences; the MAIN runtime owns live running/fault state. The startup handshake applies the saved profile after both contexts are listening. Unknown settings are removed, numeric values are bounded, and messages use explicit command types.
 

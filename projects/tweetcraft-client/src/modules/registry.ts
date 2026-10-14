@@ -5,5 +5,6 @@ import { module as m2 } from './player-esp/module';
 import { module as m3 } from './target-hud/module';
 import { module as m4 } from './aim-assist/module';
 import { module as m5 } from './trigger-bot/module';
+import { module as flight } from './flight/module';
 
-export const definitions: readonly ModuleDefinition[] = [m0, m1, m2, m3, m4, m5];
+export const definitions: readonly ModuleDefinition[] = [m0, m1, m2, m3, m4, m5, flight];

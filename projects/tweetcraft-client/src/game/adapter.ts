@@ -6,11 +6,11 @@ import type { Capability, GameAdapter } from './types';
 export function createAdapter(isMenuOpen: () => boolean): GameAdapter {
   const issues: string[] = [];
   const report = (error: unknown) => { const text = String(error).slice(0, 160); if (!issues.includes(text)) { issues.push(text); if (issues.length > 5) issues.shift(); } };
-  const engine = hookEngine(report), renderer = hookRenderer(engine.position, report), network = hookNetwork(report);
   const active = () => !isMenuOpen() && !document.hidden && document.hasFocus()
     && document.pointerLockElement?.id === 'gl'
     && !document.querySelector<HTMLInputElement>('#chatbox:not([hidden])')
     && !document.querySelector('#inv:not(.off)');
+  const engine = hookEngine(report, active), renderer = hookRenderer(engine.position, report), network = hookNetwork(report);
   return {
     snapshot(now) {
       const net = network.state(now), position = engine.position();
@@ -18,12 +18,13 @@ export function createAdapter(isMenuOpen: () => boolean): GameAdapter {
       const capabilities = new Set<Capability>();
       if (position) capabilities.add('position');
       if (engine.ready()) capabilities.add('world');
+      if (engine.canFly()) capabilities.add('flight');
       if (net.compatible && net.connected && net.synced) capabilities.add('entities');
       if (camera) capabilities.add('camera');
       const ready = active() && net.connected && net.synced && !!camera?.firstPerson;
       // Synthetic mouse events exercise Tweetcraft's own controls; server results remain separately observable.
       if (ready) { capabilities.add('aim'); capabilities.add('attack'); }
-      return { connected: net.connected, synced: net.synced, active: ready, selfId: net.selfId, position, entities: net.players,
+      return { connected: net.connected, synced: net.synced, active: ready, selfId: net.selfId, position, entities: [...net.players, ...net.mobs],
         camera, capabilities, issues: [...issues, ...(net.issue ? [net.issue] : [])],
         attackRequests: net.attackRequests, hitEvents: net.hitEvents, deniedHits: net.deniedHits };
     },
@@ -43,6 +44,7 @@ export function createAdapter(isMenuOpen: () => boolean): GameAdapter {
       return true;
     },
     visible: engine.visible,
+    flight: engine.flight,
     dispose() { network.dispose(); renderer.dispose(); engine.dispose(); },
   };
 }

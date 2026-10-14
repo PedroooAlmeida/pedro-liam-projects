@@ -1,7 +1,7 @@
 export function createOverlay() {
   const canvas = document.createElement('canvas');
   canvas.id = 'tweetcraft-client-overlay';
-  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;clip-path:inset(0 0 180px 0)';
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0';
   canvas.setAttribute('aria-hidden', 'true');
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Overlay canvas is unavailable');

@@ -18,7 +18,7 @@ export function createMenu(initial: Profile, callbacks: { change(profile: Profil
   launcher.setAttribute('aria-label', 'Open Tweetcraft Client');
   const panel = element('section', 'panel'); panel.style.pointerEvents = 'auto'; panel.hidden = true;
   panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Tweetcraft Client');
-  const header = element('div', 'header'); header.append(element('span', 'brand', 'Tweetcraft Client'), element('span', 'tag', 'DEV 0.1'));
+  const header = element('div', 'header'); header.append(element('span', 'brand', 'Tweetcraft Client'), element('span', 'tag', 'DEV 0.2'));
   const close = element('button', 'close', '×'); close.setAttribute('aria-label', 'Close menu'); header.append(close);
   const tools = element('div', 'tools'), search = element('input', 'search'), panic = element('button', 'panic', 'Disable all');
   search.placeholder = 'Find a module…'; search.setAttribute('aria-label', 'Search modules'); tools.append(search, panic);
@@ -54,7 +54,7 @@ export function createMenu(initial: Profile, callbacks: { change(profile: Profil
       search.focus();
     } else document.querySelector<HTMLElement>('#gl')?.focus();
   };
-  for (const name of ['All', 'Combat', 'Render', 'Client']) {
+  for (const name of ['All', 'Combat', 'Render', 'Client', 'Movement']) {
     const tab = element('button', 'tab', name); tab.setAttribute('role', 'tab');
     tab.addEventListener('click', () => { category = name; filter(); }, { signal }); tabs.append(tab);
   }
@@ -136,7 +136,7 @@ export function createMenu(initial: Profile, callbacks: { change(profile: Profil
     profile: () => profile,
     status(status: Status) {
       if (disposed) return;
-      statusLine.textContent = `${status.connected ? 'Connected' : 'Connecting'} · ${status.players} players · ${status.capabilities.join(' / ') || 'Hooks pending'}`;
+      statusLine.textContent = `${status.connected ? 'Connected' : 'Connecting'} · ${status.players} players / ${status.mobs ?? 0} mobs · ${status.capabilities.join(' / ') || 'Hooks pending'}`;
       for (const module of status.modules) {
         const control = controls.get(module.id);
         if (!control) continue;

@@ -10,6 +10,7 @@ export const module: ModuleDefinition = {
       const camera = game.camera;
       if (!camera || !game.position) return;
       for (const entity of game.entities) {
+        if (entity.type !== 'player') continue;
         const d = distance(game.position, entity);
         if (d > Number(settings.range)) continue;
         const foot = project(entity, camera), head = project({ ...entity, y: entity.y + (entity.crouching ? 1.5 : 1.8) }, camera);
