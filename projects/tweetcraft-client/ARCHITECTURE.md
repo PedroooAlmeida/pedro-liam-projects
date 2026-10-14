@@ -34,7 +34,7 @@ The network hook observes only matching same-host game sockets. It keeps player 
 
 The renderer hook observes terrain `uVP` and `uOrigin` uniforms only on the game's `#gl` WebGL2 canvas. Terrain origin is chunk origin minus camera position; local player position resolves the nearby chunk. The resulting matrix and interpolated camera drive projection. Camera freshness and first-person checks gate actions. This assumes camera/player separation under half a chunk and the current terrain uniform layout.
 
-Actions use synthetic mouse events through Tweetcraft's existing controls, preserving its own targeting and server communication. This is an integration hypothesis that must be validated live. The adapter does not assert server acceptance from dispatch success.
+The input hook follows Tweetcraft's two desktop control modes: pointer lock on direct pages, and focused canvas drag controls in embedded frames. Native/client menus, loading, chat, inventory, hidden pages, and lost focus gate actions. Embedded aiming uses an auxiliary-button drag at canvas center (no attack/place/pick side effects) with native drag sensitivity, then releases it immediately. Genuine held mouse drags are reused, and automated attacks wait until those gestures finish. These events update the game's own private yaw/pitch and ordinary attack paths. Actual embedded-browser behavior and server acceptance remain live-test requirements; dispatch success does not establish either.
 
 Every hook preserves native return values, failures, and receivers. Cleanup restores a hook only if our wrapper is still installed, preserving hooks added later by other code.
 

@@ -1,15 +1,13 @@
 import { hookEngine } from './hooks/engine';
 import { hookRenderer } from './hooks/renderer';
 import { hookNetwork } from './hooks/network';
+import { hookInput } from './hooks/input';
 import type { Capability, GameAdapter } from './types';
 
 export function createAdapter(isMenuOpen: () => boolean): GameAdapter {
   const issues: string[] = [];
   const report = (error: unknown) => { const text = String(error).slice(0, 160); if (!issues.includes(text)) { issues.push(text); if (issues.length > 5) issues.shift(); } };
-  const active = () => !isMenuOpen() && !document.hidden && document.hasFocus()
-    && document.pointerLockElement?.id === 'gl'
-    && !document.querySelector<HTMLInputElement>('#chatbox:not([hidden])')
-    && !document.querySelector('#inv:not(.off)');
+  const input = hookInput(isMenuOpen), active = input.active;
   const engine = hookEngine(report, active), renderer = hookRenderer(engine.position, report), network = hookNetwork(report);
   return {
     snapshot(now) {
@@ -29,21 +27,8 @@ export function createAdapter(isMenuOpen: () => boolean): GameAdapter {
         camera, capabilities, issues: [...issues, ...(net.issue ? [net.issue] : [])],
         attackRequests: net.attackRequests, hitEvents: net.hitEvents, deniedHits: net.deniedHits, movement: net.movement };
     },
-    aim(yaw, pitch) {
-      if (!active() || ![yaw, pitch].every(Number.isFinite)) return false;
-      const event = new MouseEvent('mousemove', { bubbles: true });
-      const sensitivity = .15 * Math.PI / 180;
-      Object.defineProperties(event, { movementX: { value: -yaw / sensitivity }, movementY: { value: -pitch / sensitivity } });
-      window.dispatchEvent(event);
-      return true;
-    },
-    attack() {
-      const canvas = document.querySelector('#gl');
-      if (!active() || !canvas) return false;
-      canvas.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, buttons: 1 }));
-      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, buttons: 0 }));
-      return true;
-    },
+    aim: input.aim,
+    attack: input.attack,
     visible: engine.visible,
     flight: engine.flight,
     groundSpeed: engine.groundSpeed,
@@ -52,6 +37,6 @@ export function createAdapter(isMenuOpen: () => boolean): GameAdapter {
       if (!active() || !position || !camera?.firstPerson || now - camera.updatedAt < 0 || now - camera.updatedAt >= 250) return false;
       return network.sync(position, camera, now);
     },
-    dispose() { network.dispose(); renderer.dispose(); engine.dispose(); },
+    dispose() { input.dispose(); network.dispose(); renderer.dispose(); engine.dispose(); },
   };
 }
