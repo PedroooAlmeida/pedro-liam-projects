@@ -5,6 +5,7 @@ import { createActions } from '../services/actions';
 import { createOverlay } from '../services/overlay';
 import { selectTarget } from '../services/targeting';
 import { decodeCommand, sendStatus } from '../bridge/messages';
+import { hudFrame } from '../services/hud-layout';
 
 const guard = Symbol.for('tweetcraft-client.runtime');
 const host = window as unknown as Record<symbol, { dispose(): void } | undefined>;
@@ -32,10 +33,12 @@ function tick(now: number) {
   const target = game.camera && game.capabilities.has('entities') ? selectTarget(game.entities, game.camera, {
     range: Number(targetSettings.range), fov: Number(targetSettings.fov), selfId: game.selfId, now, visible: adapter.visible,
   }) : null;
-  const base = { game, now, dt: previous ? Math.min(.1, (now - previous) / 1000) : 0, target, actions, visible: adapter.visible };
+  const hud = hudFrame(menuOpen);
+  const base = { game, now, dt: previous ? Math.min(.1, (now - previous) / 1000) : 0, target, actions, visible: adapter.visible, hud };
   previous = now;
   actions.begin(); runtime.tick(base);
-  runtime.render(base, overlay.begin());
+  const canvas = overlay.begin();
+  if (hud.visible) runtime.render(base, canvas);
   actions.flush(game.active && !menuOpen, now);
   if (now - lastStatus > 250) {
     sendStatus({ modules: runtime.statuses(), capabilities: [...game.capabilities], connected: game.connected,

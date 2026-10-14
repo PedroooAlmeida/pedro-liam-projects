@@ -2,6 +2,7 @@ import { definitions } from '../modules/registry';
 import { settingsValues, type Profile } from '../core/settings';
 import type { Status } from '../bridge/messages';
 import { styles } from './styles';
+import { createHudLayout, gameHudObstacles } from '../services/hud-layout';
 
 export function createMenu(initial: Profile, callbacks: { change(profile: Profile): void; open(value: boolean): void }) {
   let profile = initial, open = false, category = 'All', disposed = false;
@@ -25,6 +26,14 @@ export function createMenu(initial: Profile, callbacks: { change(profile: Profil
   const list = element('div', 'modules'), footer = element('div', 'footer');
   const notice = element('div', 'notice');
   panel.append(header, tools, tabs, list, footer); shadow.append(launcher, panel); document.documentElement.append(host);
+  const positionLauncher = () => {
+    const box = launcher.getBoundingClientRect();
+    const slot = createHudLayout(innerWidth, innerHeight, gameHudObstacles(false), false, 16).reserve(box.width || 160, box.height || 38);
+    launcher.style.top = `${slot?.y ?? 100}px`;
+    launcher.style.right = '12px';
+  };
+  positionLauncher();
+  const positionTimer = window.setInterval(positionLauncher, 500);
   const controls = new Map<string, { card: HTMLDivElement; toggle: HTMLInputElement; state: HTMLDivElement; fields: Map<string, HTMLInputElement>; keybind: HTMLSelectElement }>();
   const preference = (id: string) => profile.modules[id]!;
   const publish = () => callbacks.change(profile);
@@ -136,6 +145,6 @@ export function createMenu(initial: Profile, callbacks: { change(profile: Profil
       }
     },
     notice(text: string) { notice.textContent = text; },
-    dispose() { disposed = true; controller.abort(); host.remove(); },
+    dispose() { disposed = true; controller.abort(); clearInterval(positionTimer); host.remove(); },
   };
 }

@@ -5,12 +5,13 @@ import { settingsValues } from '../src/core/settings';
 import { createActions } from '../src/services/actions';
 import { selectTarget } from '../src/services/targeting';
 import type { Camera, GameSnapshot } from '../src/game/types';
+import { createHudLayout } from '../src/services/hud-layout';
 
 const camera: Camera = { position: { x: 0, y: 1.62, z: 0 }, matrix: [1,0,0,0,0,1,0,0,0,0,-1,-1,0,0,-.1,0], yaw: 0, pitch: 0, width: 800, height: 600, updatedAt: 100, firstPerson: true };
 const game: GameSnapshot = { connected: true, synced: true, active: true, selfId: 1, position: { x: 0, y: 0, z: 0 }, camera,
   entities: [{ id: 2, x: 0, y: 0, z: -2.5, name: 'Friend', crouching: false, updatedAt: 100 }], capabilities: new Set(), issues: [], attackRequests: 1, hitEvents: 0, deniedHits: 0 };
 const drawContext = () => ({ fillText: vi.fn(), fillRect: vi.fn(), strokeRect: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), arc: vi.fn() }) as unknown as CanvasRenderingContext2D;
-const context = (): ModuleContext => ({ game, now: 100, dt: .016, settings: {}, signal: new AbortController().signal,
+const context = (): ModuleContext => ({ game, now: 100, dt: .016, settings: {}, signal: new AbortController().signal, hud: createHudLayout(800, 1000, []),
   target: selectTarget(game.entities, camera, { range: 6, fov: 90, selfId: 1, now: 100, visible: () => true }),
   actions: createActions({ aim: () => true, attack: () => true }), visible: () => true });
 
@@ -30,7 +31,7 @@ describe('built-in modules', () => {
     const settings = settingsValues(definition.settings, {});
     module.render?.({ ...base, settings }, canvas); expect(canvas.arc).toHaveBeenCalled();
     module.render?.({ ...base, settings, target: null }, canvas);
-    expect(canvas.fillText).toHaveBeenLastCalledWith('NO TARGET', 400, 364);
+    expect(canvas.fillText).toHaveBeenLastCalledWith('Target  None in range', expect.any(Number), expect.any(Number), 350);
     module.render?.({ ...base, settings, game: { ...game, camera: null } }, canvas);
   });
   it('requests aim only when a valid target and camera exist', () => {

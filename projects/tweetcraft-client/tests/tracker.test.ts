@@ -10,6 +10,10 @@ const relay = (ids: number[], full = false, events?: unknown) => {
 };
 const setup = () => { const tracker = createTracker(); tracker.open(); tracker.outgoing('{"t":"hello","v":5}'); return tracker; };
 describe('Tweetcraft protocol 5', () => {
+  it('accepts the normal text heartbeat without showing a malformed JSON warning', () => {
+    const tracker = setup(); tracker.outgoing('ping'); tracker.incoming('pong', 0);
+    expect(tracker.state(0).issue).toBe('');
+  });
   it('ignores data until the version is recognized', () => {
     const tracker = createTracker(); tracker.incoming(relay([2]), 0); expect(tracker.state(0).players).toEqual([]);
     tracker.outgoing('{"t":"hello","v":6}'); expect(tracker.state(0).issue).toContain('Unsupported');

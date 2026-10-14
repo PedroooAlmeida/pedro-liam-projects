@@ -3,9 +3,10 @@ import { createRuntime } from '../src/core/runtime';
 import type { ModuleContext, ModuleDefinition } from '../src/core/module';
 import type { Capability } from '../src/game/types';
 import { createActions } from '../src/services/actions';
+import { createHudLayout } from '../src/services/hud-layout';
 
 const base = (capabilities: readonly Capability[] = []): Omit<ModuleContext, 'settings' | 'signal'> => ({
-  now: 100, dt: .01, target: null, visible: () => true, actions: createActions({ aim: () => true, attack: () => true }),
+  now: 100, dt: .01, target: null, visible: () => true, actions: createActions({ aim: () => true, attack: () => true }), hud: createHudLayout(1000, 1000, []),
   game: { connected: true, synced: true, active: true, position: null, selfId: 1, entities: [], camera: null,
     capabilities: new Set(capabilities), issues: [], attackRequests: 0, hitEvents: 0, deniedHits: 0 },
 });

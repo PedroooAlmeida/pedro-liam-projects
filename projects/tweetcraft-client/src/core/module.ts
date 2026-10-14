@@ -2,10 +2,12 @@ import type { Capability, GameSnapshot } from '../game/types';
 import type { Setting, Values } from './settings';
 import type { Target } from '../services/targeting';
 import type { ActionCoordinator } from '../services/actions';
+import type { HudLayout } from '../services/hud-layout';
 
 export type ModuleContext = Readonly<{
   game: GameSnapshot; now: number; dt: number; settings: Values;
   target: Target | null; actions: ActionCoordinator; signal: AbortSignal;
+  hud: HudLayout;
   visible: (from: { x: number; y: number; z: number }, to: { x: number; y: number; z: number }) => boolean;
 }>;
 export type ModuleDefinition = Readonly<{

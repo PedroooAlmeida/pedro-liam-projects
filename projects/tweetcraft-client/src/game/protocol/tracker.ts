@@ -35,7 +35,7 @@ export function createTracker() {
     open() { connected = true; compatible = false; synced = false; players.clear(); selfId = null; issue = ''; },
     close() { connected = false; synced = false; players.clear(); },
     outgoing(data: unknown) {
-      if (typeof data !== 'string' || data.length > 200000) return;
+      if (typeof data !== 'string' || data === 'ping' || data.length > 200000) return;
       try {
         const message: unknown = JSON.parse(data);
         if (!record(message)) return;

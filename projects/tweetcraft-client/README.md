@@ -41,6 +41,8 @@ Target HUD's range and FOV settings control the shared target-selection service 
 
 Assign module hotkeys in the menu. Hotkeys do not fire while typing. **Disable all** switches off every module, including overlays. Preferences persist using `chrome.storage.local`.
 
+Client readouts use a compact right-side stack below the game controls and avoid visible native HUD elements. The launcher moves below the native top-right buttons. Game menus hide the client overlays, and the bottom 180 pixels remain reserved for health, food, and the hotbar.
+
 ## Verification and limits
 
 `npm run check` runs strict type checking, tests with an 80% coverage gate across executable extension source, and the production build. Core lifecycle, targeting, settings, and action coordination have dedicated behavioral tests. `npm audit` checks development dependencies.
