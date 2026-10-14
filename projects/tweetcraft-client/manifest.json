@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Tweetcraft Client",
+  "version": "0.1.0",
+  "description": "A modular in-game client for Tweetcraft. Right Shift opens the menu.",
+  "minimum_chrome_version": "111",
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["https://tweetcraft.jai.vin/r/*", "https://tweetcraft.jai.vin/play/*"],
+      "js": ["main.js"],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://tweetcraft.jai.vin/r/*", "https://tweetcraft.jai.vin/play/*"],
+      "js": ["content.js"],
+      "world": "ISOLATED",
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}
