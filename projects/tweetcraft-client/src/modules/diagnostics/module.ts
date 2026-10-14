@@ -8,6 +8,8 @@ export const module: ModuleDefinition = {
         `Engine ${game.position ? 'OK' : 'waiting'} / Camera ${game.camera ? 'OK' : 'waiting'}`,
         `Players ${game.entities.filter(e => e.type === 'player').length} / Mobs ${game.entities.filter(e => e.type !== 'player').length}`,
         `Attack requests ${game.attackRequests}  /  Hurt events ${game.hitEvents}  /  Denied ${game.deniedHits}`,
+        ...(game.movement ? [`Movement ${game.movement.rate}/s  /  Extra ${game.movement.extraPackets}  /  Server resets ${game.movement.resets}`,
+          ...(game.movement.lastResetDistance === null ? [] : [`Last reset displacement ${game.movement.lastResetDistance.toFixed(2)} blocks`])] : []),
         ...game.issues,
       ];
       const rect = hud.reserve(370, lines.length * 19 + 16);

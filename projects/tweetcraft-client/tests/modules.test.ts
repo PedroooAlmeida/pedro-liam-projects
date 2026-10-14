@@ -16,6 +16,16 @@ const context = (): ModuleContext => ({ game, now: 100, dt: .016, settings: {}, 
   actions: createActions({ aim: () => true, attack: () => true }), visible: () => true });
 
 describe('built-in modules', () => {
+  it('requests ground speed and movement sync only during active gameplay', () => {
+    const base = context(), speed = vi.spyOn(base.actions, 'groundSpeed'), sync = vi.spyOn(base.actions, 'movementSync');
+    for (const id of ['ground-speed', 'movement-sync']) {
+      const definition = definitions.find(d => d.id === id)!, instance = definition.create();
+      const settings = settingsValues(definition.settings, {});
+      instance.update?.({ ...base, settings }); instance.update?.({ ...base, settings, game: { ...game, active: false } });
+    }
+    expect(speed).toHaveBeenCalledExactlyOnceWith({ owner: 'ground-speed', priority: 10, multiplier: 1.5 });
+    expect(sync).toHaveBeenCalledTimes(1);
+  });
   it('requests flight only during active gameplay', () => {
     const definition = definitions.find(d => d.id === 'flight')!, module = definition.create(), base = context();
     const flight = vi.spyOn(base.actions, 'flight'); module.update?.(base); expect(flight).toHaveBeenCalledTimes(1);
@@ -29,6 +39,8 @@ describe('built-in modules', () => {
       expect(canvas.fillText).toHaveBeenCalled();
       module.render?.({ ...base, game: { ...game, position: null, camera: null, connected: false } }, canvas);
       module.render?.({ ...base, settings, game: { ...game, entities: [{ ...game.entities[0]!, z: 3 }, { ...game.entities[0]!, z: -500 }, { ...game.entities[0]!, crouching: true }] } }, canvas);
+      module.render?.({ ...base, settings, game: { ...game, movement: { rate: 20, extraPackets: 10, resets: 1, lastResetDistance: 2 } } }, canvas);
+      module.render?.({ ...base, settings, game: { ...game, movement: { rate: 0, extraPackets: 0, resets: 0, lastResetDistance: null } } }, canvas);
     }
   });
   it('draws target guide independently of whether a target is available', () => {

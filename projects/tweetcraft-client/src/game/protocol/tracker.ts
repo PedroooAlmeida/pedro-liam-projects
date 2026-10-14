@@ -1,12 +1,15 @@
 import type { Entity } from '../types';
 import { record } from '../../core/settings';
 import { createMobTracker } from './mobs';
+import { createMovementSync } from './movement';
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 export function createTracker() {
   const players = new Map<number, Entity>();
   const mobs = createMobTracker();
+  const movement = createMovementSync();
   let selfId: number | null = null, compatible = false, connected = false, synced = false;
+  let survival = false;
   let requests = 0, hitEvents = 0, denied = 0;
   let issue = '';
   const metadata = (value: unknown) => {
@@ -18,15 +21,17 @@ export function createTracker() {
   };
   const json = (message: unknown, now: number): void => {
     if (!record(message)) return;
+    movement.received(message);
     if (message.t === 'welcome') {
       players.clear(); mobs.clear(); synced = false;
+      survival = record(message.sv);
       selfId = finite(message.id) ? message.id : null;
       if (Array.isArray(message.players)) message.players.slice(0, 10000).forEach(metadata);
     } else if (message.t === 'synced') synced = true;
     else if (message.t === 'join' || message.t === 'who') metadata(message.p);
     else if (message.t === 'leave' && finite(message.id)) players.delete(message.id);
     else if (message.t === 'evs' && Array.isArray(message.e)) message.e.slice(0, 10000).forEach(event => json(event, now));
-    else if (message.t === 'place' && message.sv) { mobs.clear(); synced = false; }
+    else if (message.t === 'place') { if (record(message.sv)) { mobs.clear(); survival = true; } if (survival) synced = false; }
     else if (message.t === 'phurt') hitEvents++;
     else if (message.t === 'hitdeny') denied++;
     else if (['old', 'kicked', 'moved', 'idle', 'full'].includes(String(message.t))) {
@@ -35,9 +40,11 @@ export function createTracker() {
     }
   };
   return {
-    open() { connected = true; compatible = false; synced = false; players.clear(); mobs.clear(); selfId = null; issue = ''; },
-    close() { connected = false; synced = false; players.clear(); mobs.clear(); },
-    outgoing(data: unknown) {
+    open() { connected = true; compatible = false; synced = false; survival = false; players.clear(); mobs.clear(); movement.clear(); selfId = null; issue = ''; },
+    close() { connected = false; synced = false; players.clear(); mobs.clear(); movement.clear(); },
+    movementPacket: movement.next,
+    outgoing(data: unknown, now = performance.now(), extra = false) {
+      if (compatible) movement.sent(data, now, extra);
       if (typeof data !== 'string' || data === 'ping' || data.length > 200000) return;
       try {
         const message: unknown = JSON.parse(data);
@@ -79,7 +86,7 @@ export function createTracker() {
       // A relay delta contains only changes. Silence is not evidence that a stationary
       // player left; full snapshots, leave messages, and disconnects own presence.
       return { selfId, compatible, connected, synced, players: [...players.values()].filter(p => p.id !== selfId && Number.isFinite(p.updatedAt) && p.updatedAt <= now),
-        mobs: mobs.entities(), attackRequests: requests, hitEvents, deniedHits: denied, issue };
+        mobs: mobs.entities(), attackRequests: requests, hitEvents, deniedHits: denied, issue, movement: movement.state(now), canSync: movement.ready() };
     },
   };
 }

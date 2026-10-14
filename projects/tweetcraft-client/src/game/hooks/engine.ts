@@ -49,6 +49,10 @@ export function hookEngine(report: (error: unknown) => void, allowFlight: () => 
       try { return flight?.set(enabled) ?? false; }
       catch (error) { report(error); return false; }
     },
+    groundSpeed(multiplier: number) {
+      try { return flight?.groundSpeed(multiplier) ?? false; }
+      catch (error) { report(error); return false; }
+    },
     dispose() { disposed = true; flight?.dispose(); cleanups.reverse().forEach(fn => fn()); engine = null; },
   };
 }

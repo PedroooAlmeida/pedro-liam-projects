@@ -18,7 +18,7 @@ export function createMenu(initial: Profile, callbacks: { change(profile: Profil
   launcher.setAttribute('aria-label', 'Open Tweetcraft Client');
   const panel = element('section', 'panel'); panel.style.pointerEvents = 'auto'; panel.hidden = true;
   panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Tweetcraft Client');
-  const header = element('div', 'header'); header.append(element('span', 'brand', 'Tweetcraft Client'), element('span', 'tag', 'DEV 0.2'));
+  const header = element('div', 'header'); header.append(element('span', 'brand', 'Tweetcraft Client'), element('span', 'tag', 'DEV 0.3'));
   const close = element('button', 'close', '×'); close.setAttribute('aria-label', 'Close menu'); header.append(close);
   const tools = element('div', 'tools'), search = element('input', 'search'), panic = element('button', 'panic', 'Disable all');
   search.placeholder = 'Find a module…'; search.setAttribute('aria-label', 'Search modules'); tools.append(search, panic);

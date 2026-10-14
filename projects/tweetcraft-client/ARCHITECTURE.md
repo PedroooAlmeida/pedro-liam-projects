@@ -38,6 +38,10 @@ Actions use synthetic mouse events through Tweetcraft's existing controls, prese
 
 Every hook preserves native return values, failures, and receivers. Cleanup restores a hook only if our wrapper is still installed, preserving hooks added later by other code.
 
+Ground Speed shares the engine export wrapper with Flight. It repeats only native `player_tick` movement, never the whole JavaScript game tick, while the player is grounded and outside liquids/flight. It removes jump input, preserves native collision/gravity, and stops extra steps as soon as the native engine reports leaving the ground. Fractional speed keeps an extra-step budget; disable/pause/disposal clears the budget. Eating, inventory, health, and attack timers retain their normal JavaScript cadence.
+
+Movement Sync observes successful native type-1 position packets as a baseline. When requested through action coordination, the network adapter can fill a 50ms gap with current engine position and fresh first-person look data. It preserves established crouch/flight flags and clears the one-shot swing flag. Supplemental packets do not renew the native traffic timer. Server placement resets, stale native traffic, unknown protocols, or socket changes invalidate the baseline. Diagnostics counts all server placements with finite coordinates as resets; it cannot infer their cause.
+
 ## Module contract
 
 Each definition supplies metadata, capability requirements, settings schema, and an instance factory. Instances may implement `enable`, `disable`, `update`, and `render`.
@@ -66,7 +70,7 @@ The runtime separates requested enablement from actual running status. Missing c
 
 One animation loop snapshots the adapter, computes a shared target, updates modules, renders the shared canvas, and flushes permitted actions. Delta time is clamped after stalls. UI status is throttled to four updates per second; world snapshots remain in the game world rather than crossing the bridge every frame.
 
-Action requests include module ID and priority. One aim, attack, and flight request win per frame; equal priorities use module ID as a stable tie-breaker. Attack cooldowns are shared, failed control dispatches can retry, and module failures cancel their pending requests. Flight is released on frames with no permitted request and during disposal. Input readiness is checked again at dispatch.
+Action requests include module ID and priority. One request per action type wins per frame; equal priorities use module ID as a stable tie-breaker. Attack cooldowns are shared, failed control dispatches can retry, and module failures cancel their pending requests. Flight and ground speed are released on frames with no permitted request and during disposal. Supplemental movement sends only on requested active frames. Input readiness is checked again at dispatch.
 
 The isolated menu owns persisted preferences; the MAIN runtime owns live running/fault state. The startup handshake applies the saved profile after both contexts are listening. Unknown settings are removed, numeric values are bounded, and messages use explicit command types.
 

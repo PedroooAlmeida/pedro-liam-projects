@@ -37,12 +37,18 @@ After changes, run `npm run build` (or leave `npm run dev` running), reload the 
 | Aim Assist | Turns toward the selected visible target through game mouse controls | Off |
 | Trigger Bot | Clicks through game controls for aligned targets within range | Off |
 | Flight | Uses the native flight physics with WASD, Space up, Left Shift down | Off |
+| Ground Speed | Runs additional native movement steps on solid ground, suppressing jumping | Off |
+| Movement Sync | Supplements movement updates at 50ms spacing while moving | Off |
 
 Target HUD's range, FOV, and target-type settings control the shared target-selection service even when the HUD itself is disabled. Players, hostile mobs, and animals can be selected independently. Mob positions, dimensions (including babies), movement, death, and despawn are tracked from the entity protocol; dropped items, XP, and projectiles are excluded. Player ESP continues to highlight players only.
 
 Combat and Flight require a fresh first-person camera, a synchronized connection, pointer lock, and focused gameplay. They suspend while the client menu, chat, or inventory is open or the tab loses focus. Close the client menu and resume through the game's own pause screen to continue. Flight is under the **Movement** tab and uses the game's native WASD/Space/Left Shift controls. It restores the previous flight state when disabled. Local flight has been verified against the fetched game engine; server-accepted movement still needs a live test.
 
 Assign module hotkeys in the menu. Hotkeys do not fire while typing. **Disable all** switches off every module, including overlays. Preferences persist using `chrome.storage.local`.
+
+For ground movement, turn **Flight off**, enable **Ground Speed** under Movement, and start with the default 1.5 multiplier. The boost uses native collision handling, stops at walls, and suspends when airborne, flying, or in liquids. Jump input is suppressed while boosting on solid ground; walking off a ledge still falls normally. Local tests against the fetched engine confirm roughly double ground travel at multiplier 2 with stable height and normal wall/ledge collisions. Server acceptance remains unverified.
+
+**Movement Sync** is a separate optional experiment for crowded-world position-update gaps. It fills gaps with current position/look data, observes a 50ms interval since the last sent update, and stops on menus, lost focus, stale native traffic, disconnects, or server resets. It never repeats swing flags or asserts creative-flight permission. Diagnostics shows outgoing movement packets per second, supplemental packet count, and server position resets with displacement. A reset can also be a respawn or dimension change; these counts do not prove an anti-cheat cause. Faster updates cannot be assumed to bypass server collision or speed checks.
 
 Client readouts use a compact right-side stack below the game controls and avoid visible native HUD elements. The launcher moves below the native top-right buttons. Game menus hide the client overlays. Readouts avoid the bottom 180 pixels reserved for health, food, and the hotbar; world-space ESP lines and the FOV circle use the full viewport and draw behind the native game HUD without a hard cutoff.
 
@@ -63,6 +69,8 @@ The adapter targets the observed protocol version **5**, engine export signature
 Player ESP uses received network positions; it may lead the game's interpolated models during movement. The line-of-sight check conservatively treats solid, leaf, and glass blocks as obstacles, including partial block shapes. Server hurt events are general observations, **not proof that a particular automated attack caused damage**. Inspect a second player's health to verify actual outcomes. No server-accepted combat behavior has been established by the local harness.
 
 Invulnerability is not implemented. The inspected client receives creative-mode permission and health updates from the server; changing local health or hiding damage would not establish actual immunity. Block X-ray is also not part of this version; enabled Player ESP draws player boxes/labels through terrain using data already received by the game.
+
+No-inventory golden-apple consumption is also unverified. Eating sends start/finish requests without an item ID or requested health value; the client selects the held inventory slot. Local prediction adjusts food/saturation, not health. A cosmetic apple or local health edit would not verify server healing.
 
 ## First live test
 

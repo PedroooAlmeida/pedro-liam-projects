@@ -10,6 +10,16 @@ const relay = (ids: number[], full = false, events?: unknown) => {
 };
 const setup = () => { const tracker = createTracker(); tracker.open(); tracker.outgoing('{"t":"hello","v":5}'); return tracker; };
 describe('Tweetcraft protocol 5', () => {
+  it('mirrors survival resynchronization while preserving creative synchronization on position resets', () => {
+    for (const survival of [false, true]) {
+      const tracker = setup(); tracker.incoming(JSON.stringify({ t: 'welcome', ...(survival ? { sv: {} } : {}) }), 0);
+      tracker.incoming('{"t":"synced"}', 0);
+      tracker.incoming('{"t":"place","st":{"x":0,"y":64,"z":0}}', 1);
+      expect(tracker.state(1).synced).toBe(!survival);
+      tracker.incoming('{"t":"place","sv":{},"st":{"x":0,"y":64,"z":0}}', 2);
+      expect(tracker.state(2).synced).toBe(false);
+    }
+  });
   it('accepts the normal text heartbeat without showing a malformed JSON warning', () => {
     const tracker = setup(); tracker.outgoing('ping'); tracker.incoming('pong', 0);
     expect(tracker.state(0).issue).toBe('');

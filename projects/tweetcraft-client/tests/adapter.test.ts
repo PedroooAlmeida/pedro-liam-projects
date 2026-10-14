@@ -5,7 +5,7 @@ import type { Camera } from '../src/game/types';
 
 const hooks = vi.hoisted(() => ({
   engine: { position: vi.fn(), ready: vi.fn(), canFly: vi.fn(() => false), flight: vi.fn(() => false), visible: vi.fn(), dispose: vi.fn() },
-  renderer: { camera: vi.fn(), dispose: vi.fn() }, network: { state: vi.fn(), dispose: vi.fn() },
+  renderer: { camera: vi.fn(), dispose: vi.fn() }, network: { state: vi.fn(), sync: vi.fn(() => true), dispose: vi.fn() },
 }));
 vi.mock('../src/game/hooks/engine', () => ({ hookEngine: () => hooks.engine }));
 vi.mock('../src/game/hooks/renderer', () => ({ hookRenderer: () => hooks.renderer }));
@@ -34,6 +34,17 @@ describe('adapter capability gates', () => {
     hooks.renderer.camera.mockReturnValue(camera); expect(adapter.snapshot(500).camera).toBeNull();
     lock.mockReturnValue(null); expect(adapter.snapshot(100).active).toBe(false);
     adapter.dispose(); expect(hooks.engine.dispose).toHaveBeenCalled();
+  });
+  it('gates supplemental movement on focus and current first-person state', () => {
+    const { camera } = setup(); let menu = false;
+    const adapter = createAdapter(() => menu);
+    const state = hooks.network.state(); hooks.network.state.mockReturnValue({ ...state, canSync: true });
+    expect(adapter.snapshot(100).capabilities.has('movement-sync')).toBe(true);
+    expect(adapter.syncPosition?.(100)).toBe(true);
+    menu = true; expect(adapter.syncPosition?.(100)).toBe(false); menu = false;
+    expect(adapter.syncPosition?.(500)).toBe(false); expect(adapter.syncPosition?.(99)).toBe(false);
+    hooks.renderer.camera.mockReturnValue({ ...camera, firstPerson: false }); expect(adapter.syncPosition?.(100)).toBe(false);
+    hooks.renderer.camera.mockReturnValue(null); expect(adapter.syncPosition?.(100)).toBe(false); adapter.dispose();
   });
   it('suspends actions while typing/inventory is open and uses native handlers when active', () => {
     const { canvas } = setup(), adapter = createAdapter(() => false);

@@ -19,6 +19,7 @@ export function createAdapter(isMenuOpen: () => boolean): GameAdapter {
       if (position) capabilities.add('position');
       if (engine.ready()) capabilities.add('world');
       if (engine.canFly()) capabilities.add('flight');
+      if (net.canSync && net.compatible && net.connected && net.synced) capabilities.add('movement-sync');
       if (net.compatible && net.connected && net.synced) capabilities.add('entities');
       if (camera) capabilities.add('camera');
       const ready = active() && net.connected && net.synced && !!camera?.firstPerson;
@@ -26,7 +27,7 @@ export function createAdapter(isMenuOpen: () => boolean): GameAdapter {
       if (ready) { capabilities.add('aim'); capabilities.add('attack'); }
       return { connected: net.connected, synced: net.synced, active: ready, selfId: net.selfId, position, entities: [...net.players, ...net.mobs],
         camera, capabilities, issues: [...issues, ...(net.issue ? [net.issue] : [])],
-        attackRequests: net.attackRequests, hitEvents: net.hitEvents, deniedHits: net.deniedHits };
+        attackRequests: net.attackRequests, hitEvents: net.hitEvents, deniedHits: net.deniedHits, movement: net.movement };
     },
     aim(yaw, pitch) {
       if (!active() || ![yaw, pitch].every(Number.isFinite)) return false;
@@ -45,6 +46,12 @@ export function createAdapter(isMenuOpen: () => boolean): GameAdapter {
     },
     visible: engine.visible,
     flight: engine.flight,
+    groundSpeed: engine.groundSpeed,
+    syncPosition(now) {
+      const position = engine.position(), camera = renderer.camera();
+      if (!active() || !position || !camera?.firstPerson || now - camera.updatedAt < 0 || now - camera.updatedAt >= 250) return false;
+      return network.sync(position, camera, now);
+    },
     dispose() { network.dispose(); renderer.dispose(); engine.dispose(); },
   };
 }
